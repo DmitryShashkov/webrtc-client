@@ -1,0 +1,10 @@
+<div class="title">
+    Users connected:
+</div>
+<div *ngFor="let user of users">
+    {{ user.id }}: {{ user.name || 'Not introduced' }}
+    <button (click)="call(user)">Call</button>
+</div>
+<div *ngIf="!users.length">
+    none except of you currently.
+</div>
