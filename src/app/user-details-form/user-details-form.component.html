@@ -1,0 +1,15 @@
+<div class="user-details">
+    <form [formGroup]="userDetailsForm"
+        (ngSubmit)="submitNewDetails()">
+        <span></span>
+        <input placeholder="Your name"
+            [formControl]="userDetailsForm.controls['name']"
+        />
+        <span *ngIf="hasErrors('name', 'required')">
+            You'd better fill this in
+        </span>
+        <button type="submit" [disabled]="userDetailsForm.invalid">
+            Submit
+        </button>
+    </form>
+</div>

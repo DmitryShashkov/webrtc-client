@@ -1,4 +1,5 @@
 export const MESSAGES = {
+    DETAILS_CHANGE_REQUESTED: 'details-change-requested',
     USERS_LIST_CHANGED: 'users-list-changed',
     CALL: {
         REQUESTED: 'call-requested',
