@@ -35,12 +35,17 @@ export class UserDetailsFormComponent implements OnInit {
 
     private submitNewDetails () {
         if (this.userDetailsForm.valid) {
+            let newUser: User = {
+                id: this.signallingService.currentUser.id,
+                name: this.userDetailsForm.controls['name'].value
+            };
+
+            this.signallingService.currentUser = newUser;
+
             this.signallingService.send<User> (
-                MESSAGES.DETAILS_CHANGE_REQUESTED, {
-                    id: this.signallingService.currentUser.id,
-                    name: this.userDetailsForm.controls['name'].value
-                }
-            )
+                MESSAGES.DETAILS_CHANGE_REQUESTED,
+                newUser
+            );
         }
     }
 

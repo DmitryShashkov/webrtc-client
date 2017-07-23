@@ -1,10 +1,11 @@
-import {Component, ElementRef, OnInit, ViewChild} from '@angular/core';
+import {Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {SignallingService} from "../services/signalling";
 import {MESSAGES, ROLES} from "../constants";
 import {ICECandidatePayload} from "../interfaces/ICECandidatePayload";
 import {SessionDescriptionPayload} from "../interfaces/SessionDescriptionPayload";
-import {ActivatedRoute} from "@angular/router";
+import {ActivatedRoute, Router} from "@angular/router";
 import {environment} from "../../environments/environment";
+import {HangUpPayload} from "../interfaces/HangUpPayload";
 
 const RTC_CONFIG = environment.RTCConfig;
 
@@ -13,7 +14,7 @@ const RTC_CONFIG = environment.RTCConfig;
     templateUrl: './video-call.component.html',
     styleUrls: ['./video-call.component.css']
 })
-export class VideoCallComponent implements OnInit {
+export class VideoCallComponent implements OnInit, OnDestroy {
     @ViewChild('localVideo')
     private localVideoElement: ElementRef;
 
@@ -28,7 +29,8 @@ export class VideoCallComponent implements OnInit {
 
     constructor (
         private signallingService: SignallingService,
-        private activatedRoute: ActivatedRoute
+        private activatedRoute: ActivatedRoute,
+        private router: Router
     ) {
         console.log(RTC_CONFIG);
     }
@@ -76,7 +78,12 @@ export class VideoCallComponent implements OnInit {
                     receiverID: this.receiverID
                 });
             }
-        })
+        });
+
+        // todo: clear subscriptions
+        this.signallingService
+            .on(MESSAGES.CALL.ENDED)
+            .subscribe(this.hangUp.bind(this));
     }
 
     private newDescriptionCreated (description: RTCSessionDescription) {
@@ -190,6 +197,18 @@ export class VideoCallComponent implements OnInit {
             },
             (err) => {console.log(err)}
         );
+    }
+
+    private hangUp () {
+        this.router.navigate(['/']);
+    }
+
+    ngOnDestroy () {
+        this.signallingService.send<HangUpPayload> (
+            MESSAGES.CALL.ENDED, {
+                senderID: this.signallingService.currentUser.id,
+                receiverID: this.receiverID
+            });
     }
 
 }

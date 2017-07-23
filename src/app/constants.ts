@@ -3,7 +3,8 @@ export const MESSAGES = {
     USERS_LIST_CHANGED: 'users-list-changed',
     CALL: {
         REQUESTED: 'call-requested',
-        RESOLVED: 'call-resolved'
+        RESOLVED: 'call-resolved',
+        ENDED: 'call-ended'
     },
     NEW_ICE_CANDIDATE: 'new-ice-candidate',
     NEW_DESCRIPTION: 'new-description',

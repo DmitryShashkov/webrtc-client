@@ -16,6 +16,7 @@ export class SignallingService {
         this.subjects[ MESSAGES.USERS_LIST_CHANGED ] = new Subject<any>();
         this.subjects[ MESSAGES.CALL.REQUESTED ] = new Subject<any>();
         this.subjects[ MESSAGES.CALL.RESOLVED ] = new Subject<any>();
+        this.subjects[ MESSAGES.CALL.ENDED ] = new Subject<any>();
         this.subjects[ MESSAGES.NEW_ICE_CANDIDATE ] = new Subject<any>();
         this.subjects[ MESSAGES.NEW_DESCRIPTION ] = new Subject<any>();
         this.subjects[ MESSAGES.CALLEE_ARRIVED ] = new Subject<any>();
@@ -38,6 +39,9 @@ export class SignallingService {
         this.socket.on(MESSAGES.CALLEE_ARRIVED, (data) => {
             this.subjects[MESSAGES.CALLEE_ARRIVED].next(data);
         });
+        this.socket.on(MESSAGES.CALL.ENDED, (data) => {
+            this.subjects[MESSAGES.CALL.ENDED].next(data);
+        });
         // this.subjects[MESSAGES.USERS_LIST_CHANGED].next.bind(this)
     }
 
@@ -54,5 +58,9 @@ export class SignallingService {
             id: this.socket.id,
             name: this.socket['name']
         };
+    }
+
+    public set currentUser (user: User) {
+        this.socket['name'] = user.name;
     }
 }
