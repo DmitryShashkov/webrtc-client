@@ -1,13 +1,13 @@
-import {Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
-import {SignallingService} from "../services/signalling";
-import {MESSAGES, ROLES} from "../constants";
-import {ICECandidatePayload} from "../interfaces/ICECandidatePayload";
-import {SessionDescriptionPayload} from "../interfaces/SessionDescriptionPayload";
-import {ActivatedRoute, Router} from "@angular/router";
-import {environment} from "../../environments/environment";
-import {HangUpPayload} from "../interfaces/HangUpPayload";
-
-const RTC_CONFIG = environment.RTCConfig;
+import { Component, ElementRef, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { SessionDescriptionPayload } from '../interfaces/SessionDescriptionPayload';
+import { ICECandidatePayload } from '../interfaces/ICECandidatePayload';
+import { SubscriptionsList } from '../interfaces/SubscriptionsList';
+import { environment } from '../../environments/environment';
+import { HangUpPayload } from '../interfaces/HangUpPayload';
+import { SignallingService } from '../services/signalling';
+import { ActivatedRoute, Router } from '@angular/router';
+import { MESSAGES, ROLES } from '../constants';
+import Logger from '../helpers/logger';
 
 @Component({
     selector: 'video-call',
@@ -27,180 +27,151 @@ export class VideoCallComponent implements OnInit, OnDestroy {
 
     private localStreamAdded: boolean;
 
+    private subscriptions: SubscriptionsList = {};
+
     constructor (
         private signallingService: SignallingService,
         private activatedRoute: ActivatedRoute,
         private router: Router
-    ) {
-        console.log(RTC_CONFIG);
-    }
+    ) { }
 
     ngOnInit () {
-        this.peerConnection = new RTCPeerConnection(RTC_CONFIG);
+        this.peerConnection = new RTCPeerConnection(environment.RTCConfig);
 
-        this.peerConnection.onicecandidate = (iceEvent: RTCPeerConnectionIceEvent) => {
-            console.log('new ice candidate');
-            if (iceEvent.candidate) {
-                this.signallingService.send<ICECandidatePayload> (
-                    MESSAGES.NEW_ICE_CANDIDATE, {
-                        candidate: iceEvent.candidate,
-                        receiverID: this.receiverID
-                    });
-            }
-        };
+        this.peerConnection.onicecandidate = this.onICECandidateReceived.bind(this);
 
-        this.peerConnection.onaddstream = (event: MediaStreamEvent) => {
-            console.log('new remote stream added');
+        this.peerConnection.onaddstream = this.onRemoteStreamAdded.bind(this);
 
-            let video: HTMLVideoElement = this.remoteVideoElement.nativeElement;
-            video.srcObject = event.stream;
-            video.play();
-        };
+        this.setupLocalVideo();
 
-        this.setupVideo();
-
-        this.activatedRoute.queryParams.subscribe((params) => {
-            this.receiverID = params['companion'];
-
-            if (params['role'] === ROLES.CALLER) { // you are the Caller
-                console.log('you are the Caller');
-
-                // setup caller signal handler
-                this.handleCallerSignals();
-            } else { // you have a hash fragment so you must be the Callee
-                console.log('you are the Callee');
-
-                this.handleCalleeSignals();
-
-                // let the caller know you have arrived so they can start the call
-                console.log('sending "callee_arrived" signal');
-                this.signallingService.send<any>(MESSAGES.CALLEE_ARRIVED, {
-                    receiverID: this.receiverID
-                });
-            }
-        });
-
-        // todo: clear subscriptions
-        this.signallingService
-            .on(MESSAGES.CALL.ENDED)
-            .subscribe(this.hangUp.bind(this));
+        this.activatedRoute.queryParams.subscribe(this.manageSubscriptions.bind(this));
     }
 
+    private onICECandidateReceived (iceEvent: RTCPeerConnectionIceEvent) {
+        Logger.log('New ice candidate');
+        if (iceEvent.candidate) {
+            this.signallingService.send<ICECandidatePayload> (
+                MESSAGES.NEW_ICE_CANDIDATE, {
+                candidate: iceEvent.candidate,
+                receiverID: this.receiverID
+            });
+        }
+    }
+
+    private onRemoteStreamAdded  (event: MediaStreamEvent) {
+        Logger.log('New remote stream added');
+
+        let video: HTMLVideoElement = this.remoteVideoElement.nativeElement;
+        video.srcObject = event.stream;
+        video.play();
+    }
+
+    private manageSubscriptions (params) {
+        this.receiverID = params['companion'];
+
+        if (params['role'] === ROLES.CALLER) {
+            Logger.log('You are the caller');
+            this.subscriptions[ MESSAGES.CALLEE_ARRIVED ] =
+                this.signallingService
+                    .on(MESSAGES.CALLEE_ARRIVED)
+                    .subscribe(this.createOffer.bind(this))
+        } else {
+            Logger.log('You are the Callee');
+            this.signallingService.send<any>(MESSAGES.CALLEE_ARRIVED, {
+                receiverID: this.receiverID
+            });
+        }
+
+        this.subscriptions[ MESSAGES.NEW_ICE_CANDIDATE ] =
+            this.signallingService
+                .on(MESSAGES.NEW_ICE_CANDIDATE)
+                .subscribe((payload: ICECandidatePayload) => {
+                    this.peerConnection.addIceCandidate (
+                        new RTCIceCandidate(payload.candidate)
+                    ).catch(VideoCallComponent.handleError);
+                });
+
+        this.subscriptions[ MESSAGES.NEW_DESCRIPTION ] =
+            this.signallingService
+                .on(MESSAGES.NEW_DESCRIPTION)
+                .subscribe((payload: SessionDescriptionPayload) => {
+                    this.peerConnection
+                        .setRemoteDescription( new RTCSessionDescription(payload.sdp) )
+                        .then(() => {
+                            if (params['role'] === ROLES.CALLEE) {
+                                this.createAnswer();
+                            }
+                        })
+                        .catch(VideoCallComponent.handleError)
+                });
+
+        this.subscriptions[ MESSAGES.CALL.ENDED ] =
+            this.signallingService
+                .on(MESSAGES.CALL.ENDED)
+                .subscribe(this.hangUp.bind(this));
+    }
+
+
     private newDescriptionCreated (description: RTCSessionDescription) {
-        this.peerConnection.setLocalDescription(
-            description,
-            () => {
+        this.peerConnection
+            .setLocalDescription(description)
+            .then(() => {
                 this.signallingService.send<SessionDescriptionPayload>(
                     MESSAGES.NEW_DESCRIPTION, {
                         sdp: description,
                         receiverID: this.receiverID
                     });
-            },
-            (err) => {console.log(err)}
-        );
-    }
-
-    private handleCallerSignals () : void {
-        this.signallingService
-            .on(MESSAGES.CALLEE_ARRIVED)
-            .subscribe(this.createOffer.bind(this));
-
-        this.signallingService
-            .on(MESSAGES.NEW_ICE_CANDIDATE)
-            .subscribe((payload: ICECandidatePayload) => {
-                this.peerConnection.addIceCandidate (
-                    new RTCIceCandidate(payload.candidate)
-                );
-            });
-
-        this.signallingService
-            .on(MESSAGES.NEW_DESCRIPTION)
-            .subscribe((payload: SessionDescriptionPayload) => {
-                this.peerConnection.setRemoteDescription (
-                    new RTCSessionDescription(payload.sdp)
-                );
-            });
+            })
+            .catch(VideoCallComponent.handleError);
     }
 
     private createOffer () {
         if (this.localStreamAdded) {
-            console.log("creating offer");
-            this.peerConnection.createOffer(
-                this.newDescriptionCreated.bind(this),
-                (err) => {console.log(this)}
-            );
+            Logger.log('Creating offer');
+            this.peerConnection.createOffer()
+                .then(this.newDescriptionCreated.bind(this))
+                .catch(VideoCallComponent.handleError);
         } else {
-            console.log("local stream has not been added yet - delaying creating offer");
-            setTimeout(() => {
-                this.createOffer();
-            }, 1000);
+            setTimeout(this.createOffer.bind(this), 1000);
         }
-    }
-
-    private handleCalleeSignals () {
-        // todo: move to the higher level, this is duplicated
-        this.signallingService
-            .on(MESSAGES.NEW_ICE_CANDIDATE)
-            .subscribe((payload: ICECandidatePayload) => {
-                this.peerConnection.addIceCandidate (
-                    new RTCIceCandidate(payload.candidate)
-                );
-            });
-
-        this.signallingService
-            .on(MESSAGES.NEW_DESCRIPTION)
-            .subscribe((payload: SessionDescriptionPayload) => {
-                this.peerConnection.setRemoteDescription (
-                    new RTCSessionDescription(payload.sdp),
-                    () => { this.createAnswer(); }
-                );
-            });
     }
 
     private createAnswer () {
         if (this.localStreamAdded) {
-            console.log("creating answer");
-            this.peerConnection.createAnswer (
-                this.newDescriptionCreated.bind(this),
-                (err) => {console.log(err)}
-            );
+            Logger.log('Creating answer');
+            this.peerConnection.createAnswer()
+                .then(this.newDescriptionCreated.bind(this))
+                .catch(VideoCallComponent.handleError);
         } else {
-            console.log("local stream has not been added yet - delaying creating answer");
-            setTimeout(() => {
-                this.createAnswer();
-            }, 1000);
+            setTimeout(this.createAnswer.bind(this), 1000);
         }
     }
 
-// setup stream from the local camera
-    private setupVideo() {
-        console.log("setting up local video stream");
-        navigator.getUserMedia(
-            {
-                "audio": true, // request access to local microphone
-                "video": true  // request access to local camera
-            },
-            (localStream: MediaStream) => { // success callback
-                // display preview from the local camera & microphone using local <video> MediaElement
-                console.log("new local stream added");
+    private setupLocalVideo () {
+        navigator.getUserMedia (
+            { 'audio': true, 'video': true },
+            (localStream: MediaStream) => {
+                Logger.log('New local stream added');
 
                 let video: HTMLVideoElement = this.localVideoElement.nativeElement;
                 video.srcObject = localStream;
                 video.play();
                 video.muted = true;
-                // mute local video to prevent feedback
 
-                // add local camera stream to peerConnection ready to be sent to the remote peer
-                console.log("local stream added to peerConnection to send to remote peer");
                 this.peerConnection.addStream(localStream);
                 this.localStreamAdded = true;
             },
-            (err) => {console.log(err)}
+            VideoCallComponent.handleError
         );
     }
 
     private hangUp () {
+        // noinspection JSIgnoredPromiseFromCall
         this.router.navigate(['/']);
+    }
+
+    private static handleError (err: any) {
+        Logger.log(err);
     }
 
     ngOnDestroy () {
@@ -209,6 +180,10 @@ export class VideoCallComponent implements OnInit, OnDestroy {
                 senderID: this.signallingService.currentUser.id,
                 receiverID: this.receiverID
             });
+
+        for (let key in this.subscriptions) {
+            this.subscriptions[key].unsubscribe();
+        }
     }
 
 }
