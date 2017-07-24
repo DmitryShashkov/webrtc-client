@@ -1,8 +1,8 @@
+import { AbstractControl, FormBuilder, FormGroup, Validators } from '@angular/forms';
+import { SignallingService } from '../services/signalling';
 import { Component, OnInit } from '@angular/core';
-import {AbstractControl, FormBuilder, FormGroup, Validators} from "@angular/forms";
-import {SignallingService} from "../services/signalling";
-import {User} from "../interfaces/User";
-import {MESSAGES} from "../constants";
+import { User } from '../interfaces/User';
+import { MESSAGES } from '../constants';
 
 @Component({
     selector: 'user-details-form',
