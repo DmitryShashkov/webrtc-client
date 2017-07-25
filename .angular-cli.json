@@ -19,7 +19,7 @@
       "testTsconfig": "tsconfig.spec.json",
       "prefix": "app",
       "styles": [
-        "styles.css"
+        "assets/css/styles.css"
       ],
       "scripts": [
           "../node_modules/webrtc-adapter/out/adapter.js"
