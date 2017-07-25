@@ -1,0 +1,26 @@
+.user-details {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+}
+
+form {
+    display: flex;
+    align-items: center;
+}
+
+input {
+    font-family: inherit;
+    border: 0;
+    border-bottom: 1px solid;
+    outline: none;
+    padding: 3px 10px;
+    margin-right: 10px;
+}
+
+.validation-errors {
+    position: absolute;
+    bottom: -20px;
+    left: 10px;
+    font-size: 10px;
+}

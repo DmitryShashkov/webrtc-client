@@ -1,0 +1,53 @@
+.title {
+    font-size: 24px;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+.no-users {
+    text-align: center;
+    margin-top: 25px;
+}
+
+.user {
+    width: 400px;
+    margin: 25px auto 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+.user .number {
+    font-size: 10px;
+}
+.user .name {
+    font-weight: 700;
+    font-size: 20px;
+    background-color: #fff;
+    padding: 0 5px 0 0;
+    display: inline-block;
+    max-width: 220px;
+    text-overflow: ellipsis;
+    height: 22px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+.user .call {
+    font-size: 22px;
+    padding: 10px 0 0 5px;
+    background-color: #fff;
+}
+.user .dots {
+    position: absolute;
+    top: 65%;
+    left: 0;
+    right: 0;
+    /* noinspection CssFloatPxLength */
+    border: 0.5px dashed #555;
+    z-index: -1;
+}
+
+.hint {
+    margin-top: 30px;
+    text-align: center;
+}

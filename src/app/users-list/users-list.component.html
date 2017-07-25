@@ -1,14 +1,29 @@
-<div class="title">
+<div class="title font-title">
     Users connected:
 </div>
-<div *ngFor="let user of users">
-    {{ user.id }}: {{ user.name || 'Not introduced' }}
-    <button (click)="call(user)">Call</button>
+
+<div *ngFor="let user of users" class="user">
+    <div class="description">
+        <div class="number">
+            {{ user.id }}
+        </div>
+        <div class="name">
+            {{ user.name || 'Not introduced' }}
+        </div>
+    </div>
+    <button (click)="call(user)" class="call">
+        Call!
+    </button>
+    <div class="dots"></div>
 </div>
-<div *ngIf="!users.length">
+
+<div class="hint" *ngIf="!!users.length">
+    (select someone and hit 'call' to get schwifty)
+</div>
+
+<div *ngIf="!users.length" class="no-users">
     none except of you currently.
 </div>
-select someone and hit 'call' to get schwifty
 
 <user-details-form>
 </user-details-form>

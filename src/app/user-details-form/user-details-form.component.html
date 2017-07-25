@@ -5,7 +5,8 @@
         <input placeholder="Your name"
             [formControl]="userDetailsForm.controls['name']"
         />
-        <span *ngIf="hasErrors('name', 'required')">
+        <span *ngIf="hasErrors('name', 'required')"
+            class="validation-errors">
             You'd better fill this in
         </span>
         <button type="submit" [disabled]="userDetailsForm.invalid">

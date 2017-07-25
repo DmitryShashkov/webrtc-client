@@ -1,5 +1,35 @@
+@font-face {
+    font-family: Misfits;
+    src: url("../fonts/misfits.ttf");
+}
+@font-face {
+    font-family: ComingSoon;
+    src: url("../fonts/coming-soon.ttf");
+}
+
+html {
+    min-height: 100%;
+}
+
 body {
-    height: 100vh;
+    min-height: 100vh;
     margin: 0;
     background: url("../img/bg.jpg") no-repeat bottom left;
+    font-family: ComingSoon, cursive;
+}
+
+.font-title {
+    font-family: Misfits, sans-serif;
+}
+
+button {
+    font-family: Misfits, sans-serif;
+    color: #000;
+    border: 0;
+    background-color: transparent;
+    font-size: 18px;
+    padding: 0;
+    cursor: pointer;
+    letter-spacing: 1px;
+    outline: 0;
 }

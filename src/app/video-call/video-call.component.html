@@ -1,6 +1,11 @@
-<video #remoteVideo></video>
-<video #localVideo></video>
+<div class="video-container">
+    <video #remoteVideo></video>
+    <video #localVideo></video>
+</div>
 
-squanching in progress
-
-<button (click)="hangUp()"></button>
+<div class="hint">
+    Squanching in progress...
+</div>
+<button class="hang-up" (click)="hangUp()">
+    Hang up!
+</button>
