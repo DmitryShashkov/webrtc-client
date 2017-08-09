@@ -5,7 +5,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --port 1234 --env=local",
-    "build": "ng build"
+    "build": "ng build --env=local"
   },
   "private": true,
   "dependencies": {
